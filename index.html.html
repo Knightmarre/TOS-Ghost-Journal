@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TOS Ghost Journal</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #1a1a1a;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .evidence-selector {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .evidence-selector label {
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .evidence-selector input[type="checkbox"] {
+      display: none;
+    }
+    .evidence-selector input[type="checkbox"]:checked + label {
+      background: #007acc;
+    }
+    .ghost-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 15px;
+    }
+    .ghost-card {
+      background-color: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 15px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .ghost-card:hover {
+      transform: scale(1.02);
+    }
+    .ghost-card.crossed {
+      opacity: 0.4;
+      text-decoration: line-through;
+    }
+    .ghost-name {
+      font-size: 20px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .ghost-evidence,
+    .ghost-description,
+    .ghost-behavior,
+    .ghost-holywater,
+    .ghost-speed {
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .no-match {
+      text-align: center;
+      margin-top: 20px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>TOS Ghost Journal</h1>
+  <div class="evidence-selector" id="evidenceSelector"></div>
+  <div class="ghost-grid" id="ghostGrid"></div>
+  <div class="no-match" id="noMatch" style="display: none;">
+    No matching ghosts found.
+  </div>
+  <script>
+    const evidences = [
+      "EMF Level 5",
+      "Audio",
+      "Ghost Writing",
+      "Freezing Temps",
+      "Radiation",
+      "UV"
+    ];
+
+    const ghosts = [
+      { name: "Banshee", evidence: ["Audio", "Radiation", "EMF Level 5"], description: "20% chance to hear screams through audio devices.", behavior: "Normal", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m)" },
+      { name: "Bhoot", evidence: ["Freezing Temps", "Radiation", "Ghost Writing"], description: "Room gets cold moments before hunting.", behavior: "Increased hunt cooldown", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m)" },
+      { name: "Demon", evidence: ["Ghost Writing", "UV", "Radiation"], description: "Hunts as soon as 90 BPM. Prevents hunt for 2 minutes.", behavior: "Hot temps on touch, increased efficiency", holyWater: "Increased, From the time it is sprayed, it will stop the ghost from hunting for two minutes.", speed: "Break LOS: 2.5 Range: 49ft (15m), Slow speed" },
+      { name: "Doppelganger", evidence: ["Audio", "Ghost Writing", "UV"], description: "Returns to favorite room before hunting.", behavior: "Normal", holyWater: "Normal", speed: "Break LOS: 2.5 Range: 32ft (10m)" },
+      { name: "Iblis", evidence: ["Audio", "Freezing Temps", "Ghost Writing"], description: "Shapeshifts during hunts.", behavior: "Normal", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m), Slight speed increase" },
+      { name: "Phantom", evidence: ["Radiation", "Audio", "UV"], description: "No manifest events, more shadow events.", behavior: "Turns off radios only", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m), Normal speed" },
+      { name: "Poltergeist", evidence: ["UV", "EMF Level 5", "Ghost Writing"], description: "Throws more objects.", behavior: "Normal", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m), Slight speed increase" },
+      { name: "Revenant", evidence: ["EMF Level 5", "Radiation", "Ghost Writing"], description: "Target permanently damages stamina.", behavior: "Curses more than one target", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m), Normal speed" },
+      { name: "Shura", evidence: ["EMF Level 5", "Ghost Writing", "Freezing Temps"], description: "Shorter cooldown. Hard to break LOS.", behavior: "Less effective", holyWater: "Less effective", speed: "Break: 3.25 Range: 82ft (25m), Increases speed" },
+      { name: "Skia", evidence: ["Audio", "EMF Level 5", "UV"], description: "Unique Spirit Box responses.", behavior: "Increased hunt cooldown, distressed sounds", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m), Increases until near target" },
+      { name: "Strigoi", evidence: ["UV", "Freezing Temps", "Ghost Writing"], description: "Raises heart rate, only shadow events.", behavior: "Only turns on radios", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m), Slight speed increase" },
+      { name: "Tantalus", evidence: ["Freezing Temps", "UV", "EMF Level 5"], description: "Never closes doors, can't turn off FLXPod.", behavior: "Less effective", holyWater: "Less effective", speed: "Break: 2.5 Range: 49ft (15m), Slight speed increase" },
+      { name: "Tariaksuq", evidence: ["Audio", "EMF Level 5", "Freezing Temps"], description: "Never turns on lights, full form only in hunt.", behavior: "Blows out candles more, shortens hunts", holyWater: "From the time it is sprayed, it will stop the ghost form hunting for 90 seconds.", speed: "Break: 2.5 Range: 49ft (15m), Light dependent" },
+      { name: "The Echo", evidence: ["Radiation", "Freezing Temps", "UV"], description: "Can't interact with lights, radios, or FLXPod.", behavior: "Breaker: individual only", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m), Normal speed" },
+      { name: "The Forgotten", evidence: ["EMF Level 5", "Radiation", "UV"], description: "Passive ghost and barely interacts.", behavior: "Can't turn off FLXPod", holyWater: "Normal", speed: "Break: 2.5 Range: 49ft (15m), Slight speed increase" },
+      { name: "Wisp", evidence: ["Audio", "Radiation", "Freezing Temps"], description: "Turns on lights more, never off.", behavior: "Prevents hunt for 2 mins", holyWater: "Increased Efficiency Form the time it is sprayed, it will stop the ghost form hunting for two minutes.", speed: "Break: 2.5 Range: 49ft (15m), Slight speed increase" },
+      { name: "Wewe Gombel", evidence: ["Radiation", "EMF Level 5", "Freezing Temps"], description: "Turns off lights only, short cooldown.", behavior: "Individual breakers only", holyWater: "Increased Efficiency", speed: "Break: 2.5 Range: 49ft (15m), Speed increases drastically" },
+      { name: "Wraith", evidence: ["Audio", "Freezing Temps", "UV"], description: "Targets specific player. No feet when hunting.", behavior: "Reduces speed during hunt", holyWater: "Reduces speed during hunt", speed: "Break: 1.25 Range: 49ft (15m), Substantially increased" }
+    ];
+
+    const evidenceSelector = document.getElementById("evidenceSelector");
+    const ghostGrid = document.getElementById("ghostGrid");
+    const noMatch = document.getElementById("noMatch");
+
+    evidences.forEach((evidence, index) => {
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = `evidence-${index}`;
+      checkbox.value = evidence;
+
+      const label = document.createElement("label");
+      label.htmlFor = checkbox.id;
+      label.textContent = evidence;
+
+      checkbox.addEventListener("change", updateGhostGrid);
+
+      evidenceSelector.appendChild(checkbox);
+      evidenceSelector.appendChild(label);
+    });
+
+    function updateGhostGrid() {
+      const selectedEvidence = [...document.querySelectorAll("input[type=checkbox]:checked")].map(cb => cb.value);
+      const filteredGhosts = ghosts.filter(ghost => selectedEvidence.every(ev => ghost.evidence.includes(ev)));
+
+      ghostGrid.innerHTML = "";
+
+      if (filteredGhosts.length === 0) {
+        noMatch.style.display = "block";
+        return;
+      }
+
+      noMatch.style.display = "none";
+
+      filteredGhosts.forEach(ghost => {
+        const card = document.createElement("div");
+        card.className = "ghost-card";
+        card.innerHTML = `
+          <div class="ghost-name">${ghost.name}</div>
+          <div class="ghost-evidence"><strong>Evidence:</strong> ${ghost.evidence.join(", ")}</div>
+          <div class="ghost-description"><strong>Description:</strong> ${ghost.description}</div>
+          <div class="ghost-behavior"><strong>Behavior:</strong> ${ghost.behavior}</div>
+          <div class="ghost-holywater"><strong>Holy Water Effect:</strong> ${ghost.holyWater}</div>
+          <div class="ghost-speed"><strong>LOS Speed:</strong> ${ghost.speed}</div>
+        `;
+
+        card.ondblclick = () => {
+          card.classList.toggle("crossed");
+        };
+
+        ghostGrid.appendChild(card);
+      });
+    }
+
+    updateGhostGrid();
+  </script>
+</body>
+</html>
